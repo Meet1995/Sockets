@@ -1,2 +1,2 @@
 # Sockets
-Contains templates for sockets
+Contains templates for server-client type bidirectional communication through sockets
