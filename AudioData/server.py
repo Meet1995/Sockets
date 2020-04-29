@@ -20,7 +20,7 @@ HEADERSIZE = 15
 BUFFERSIZE = 2000
 
 
-def speak(CHUNK=4000,SAMPLERATE=12000,seconds_to_wait=2,formatt='int16',
+def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=2,formatt='int16',
           write_to_wav=True, get_devices=False):
     p = pyaudio.PyAudio()
     if get_devices:
@@ -61,19 +61,18 @@ def speak(CHUNK=4000,SAMPLERATE=12000,seconds_to_wait=2,formatt='int16',
 
     keep_recording = True
     start_recording = False
-    
+
     while keep_recording:
-        tmp = np.frombuffer(stream.read(CHUNK), unpack_format)
+        raw_tmp = stream.read(CHUNK)
+        tmp = np.frombuffer(raw_tmp, unpack_format)
         if tmp.max() > THRESHHOLD:
             start_recording = True
             all_data = tmp
+            raw_data = raw_tmp
             print('Recording Starts')
             while start_recording:
                 data = stream.read(CHUNK)
-                if k == 1:
-                    raw_data = data
-                else:
-                    raw_data += data
+                raw_data += data
 
                 data_unpacked = np.frombuffer(data, unpack_format)
                 line.set_ydata(data_unpacked)
@@ -90,12 +89,12 @@ def speak(CHUNK=4000,SAMPLERATE=12000,seconds_to_wait=2,formatt='int16',
                         print('Recording Stops')
                         plt.close()
                         start_recording = False
-                        keep_recording = False   
+                        keep_recording = False
         else:
             line.set_ydata(tmp)
             fig.canvas.draw()
-            fig.canvas.flush_events()            
-            
+            fig.canvas.flush_events()
+
     if write_to_wav:
         duration = int(len(all_data)/SAMPLERATE)
         name = f'audio_{duration}_{formatt}.wav'
@@ -103,7 +102,7 @@ def speak(CHUNK=4000,SAMPLERATE=12000,seconds_to_wait=2,formatt='int16',
         print(f'file {name} saved to working directory')
         return all_data, SAMPLERATE, name, raw_data
     else:
-        return all_data, SAMPLERATE, raw_data
+        return all_data, SAMPLERATE, raw_data, formatt
 
 arr,sr,nm,raw_data = speak()
 dictt = {'arr':arr,'sr':sr, 'name':nm}
@@ -142,10 +141,8 @@ def receive_data(websocket, buffer_size, header_len):
         if msglen_recvd == msglen:
             websocket.send(bytes('1','utf-8'))
             time_taken = time.time()-s_t
-            print('-------------------Full msg recvd---------------------')
             dictt = pickle.loads(full_msg[header_len:])
-            print('Received array shape:',dictt['arr'].shape)
-            print('---------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxx------------------------')
+            print('*******************Full msg recvd******************')
             msg_not_recieved = False
     return msglen+buffer_size, time_taken, dictt
 
