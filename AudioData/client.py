@@ -44,10 +44,8 @@ def receive_data(websocket, buffer_size, header_len):
         if msglen_recvd == msglen:
             websocket.send(bytes('1','utf-8'))
             time_taken = time.time()-s_t
-            print('-------------------Full msg recvd---------------------')
             dictt = pickle.loads(full_msg[header_len:])
-            print('Received array shape:',dictt['arr'].shape)
-            print('---------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxx------------------------')
+            print('*******************Full msg recvd******************')
             msg_not_recieved = False
     return msglen+buffer_size, time_taken, dictt
 
