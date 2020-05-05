@@ -20,8 +20,11 @@ HEADERSIZE = 15
 BUFFERSIZE = 2000
 
 
-def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=2,formatt='int16',
+def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=1,formatt='int16',
           write_to_wav=True, get_devices=False):
+    
+    "Output encoding is LINEAR16"
+    
     p = pyaudio.PyAudio()
     if get_devices:
         for x in range(p.get_device_count()):
@@ -100,11 +103,11 @@ def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=2,formatt='int16',
         name = f'audio_{duration}_{formatt}.wav'
         wavfile.write(name,SAMPLERATE, all_data)
         print(f'file {name} saved to working directory')
-        return all_data, SAMPLERATE, name, raw_data
+        return all_data, raw_data, SAMPLERATE, formatt, name
     else:
-        return all_data, SAMPLERATE, raw_data, formatt
+        return all_data, raw_data, SAMPLERATE, formatt
 
-arr,sr,nm,raw_data = speak()
+arr, raw_data, sr, formatt, nm = speak()
 dictt = {'arr':arr,'sr':sr, 'name':nm}
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
