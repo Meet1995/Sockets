@@ -61,6 +61,9 @@ def receive_msg(websocket, buffer_size, header_len):
 
 def record_and_stream_audio(websocket, CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=2,formatt='int16',
           write_to_wav=True, get_devices=False):
+    
+    "Output raw data has Linear16 encoding"
+    
     p = pyaudio.PyAudio()
     if get_devices:
         for x in range(p.get_device_count()):
@@ -144,9 +147,9 @@ def record_and_stream_audio(websocket, CHUNK=4000,SAMPLERATE=8000,seconds_to_wai
         name = f'audio_{duration}_{formatt}.wav'
         wavfile.write(name,SAMPLERATE, all_data)
         print(f'file {name} saved to working directory')
-        return all_data, name, raw_data
+        return all_data, raw_data, name
     else:
         return all_data, raw_data
 
 
-arr, nm, raw_data = record_and_stream_audio(clientsocket)
+arr, raw_data, nm = record_and_stream_audio(clientsocket)
