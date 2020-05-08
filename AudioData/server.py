@@ -20,8 +20,8 @@ HEADERSIZE = 15
 BUFFERSIZE = 2000
 
 
-def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=1,formatt='int16',
-          write_to_wav=True, get_devices=False):
+def speak(CHUNK=4000,SAMPLERATE=16000,seconds_to_wait=0.5,formatt='int16',
+          write_to_wav=True, get_devices=False, show_window = True):
     
     "Output encoding is LINEAR16"
     
@@ -35,7 +35,7 @@ def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=1,formatt='int16',
     unpack_format= formatt #'int16'
     if formatt == 'int16':
         FORMAT = pyaudio.paInt16
-        THRESHHOLD = 3000
+        THRESHHOLD = 10000
     elif formatt == 'int32':
         FORMAT = pyaudio.paInt32
         THRESHHOLD = 9*10**7
@@ -52,51 +52,81 @@ def speak(CHUNK=4000,SAMPLERATE=8000,seconds_to_wait=1,formatt='int16',
     chunks_per_sec = int(SAMPLERATE/CHUNK)
 
     k=1
-    fig, ax = plt.subplots()
-    x = np.arange(CHUNK)
-    line, = ax.plot(x,np.random.randn(CHUNK))
-    if formatt == 'int16':
-        ax.set_ylim([-2**15,(2**15)-1])
-    elif formatt == 'int32':
-        ax.set_ylim([-2**31,(2**31)-1])
-    elif formatt == 'float32':
-        ax.set_ylim([-1,1])
-
-    keep_recording = True
-    start_recording = False
-
-    while keep_recording:
-        raw_tmp = stream.read(CHUNK)
-        tmp = np.frombuffer(raw_tmp, unpack_format)
-        if tmp.max() > THRESHHOLD:
-            start_recording = True
-            all_data = tmp
-            raw_data = raw_tmp
-            print('Recording Starts')
-            while start_recording:
-                data = stream.read(CHUNK)
-                raw_data += data
-
-                data_unpacked = np.frombuffer(data, unpack_format)
-                line.set_ydata(data_unpacked)
+    if show_window:     
+        fig, ax = plt.subplots()
+        x = np.arange(CHUNK)
+        line, = ax.plot(x,np.random.randn(CHUNK))
+        if formatt == 'int16':
+            ax.set_ylim([-2**15,(2**15)-1])
+        elif formatt == 'int32':
+            ax.set_ylim([-2**31,(2**31)-1])
+        elif formatt == 'float32':
+            ax.set_ylim([-1,1])
+    
+        keep_recording = True
+        start_recording = False
+    
+        while keep_recording:
+            raw_tmp = stream.read(CHUNK)
+            tmp = np.frombuffer(raw_tmp, unpack_format)
+            if tmp.max() > THRESHHOLD:
+                start_recording = True
+                all_data = tmp
+                raw_data = raw_tmp
+                print('Recording Starts')
+                while start_recording:
+                    data = stream.read(CHUNK)
+                    raw_data += data
+    
+                    data_unpacked = np.frombuffer(data, unpack_format)
+                    line.set_ydata(data_unpacked)
+                    fig.canvas.draw()
+                    fig.canvas.flush_events()
+    
+                    all_data = np.concatenate((all_data,data_unpacked),axis=0)
+    
+                    k +=1
+                    if k>seconds_to_wait*chunks_per_sec:
+                        idx = int(seconds_to_wait*SAMPLERATE)
+                        max_value = all_data[-idx:].max()
+                        if max_value<THRESHHOLD:
+                            print('Recording Stops')
+                            plt.close()
+                            start_recording = False
+                            keep_recording = False
+            else:
+                line.set_ydata(tmp)
                 fig.canvas.draw()
                 fig.canvas.flush_events()
-
-                all_data = np.concatenate((all_data,data_unpacked),axis=0)
-
-                k +=1
-                if k>seconds_to_wait*chunks_per_sec:
-                    idx = seconds_to_wait*chunks_per_sec*CHUNK
-                    max_value = all_data[-idx:].max()
-                    if max_value<THRESHHOLD:
-                        print('Recording Stops')
-                        plt.close()
-                        start_recording = False
-                        keep_recording = False
-        else:
-            line.set_ydata(tmp)
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+    else:
+        
+        keep_recording = True
+        start_recording = False
+    
+        while keep_recording:
+            raw_tmp = stream.read(CHUNK)
+            tmp = np.frombuffer(raw_tmp, unpack_format)
+            if tmp.max() > THRESHHOLD:
+                start_recording = True
+                all_data = tmp
+                raw_data = raw_tmp
+                print('Recording Starts')
+                while start_recording:
+                    data = stream.read(CHUNK)
+                    raw_data += data
+    
+                    data_unpacked = np.frombuffer(data, unpack_format)    
+                    all_data = np.concatenate((all_data,data_unpacked),axis=0)
+    
+                    k +=1
+                    if k>seconds_to_wait*chunks_per_sec:
+                        idx = int(seconds_to_wait*SAMPLERATE)
+                        max_value = all_data[-idx:].max()
+                        if max_value<THRESHHOLD:
+                            print('Recording Stops')
+                            plt.close()
+                            start_recording = False
+                            keep_recording = False            
 
     if write_to_wav:
         duration = int(len(all_data)/SAMPLERATE)
